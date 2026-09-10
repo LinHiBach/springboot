@@ -21,7 +21,8 @@ public class SiteMeshConfiguration {
         registration.addUrlPatterns("/*");
 
         // Chạy sau filter UTF-8 đã tạo
-        registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 10);
+        // Sau Spring Security để decorator có thể lấy CSRF token.
+        registration.setOrder(0);
 
         return registration;
     }

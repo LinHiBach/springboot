@@ -18,8 +18,7 @@ public class JspViewConfiguration {
         resolver.setSuffix(".jsp");
 
         resolver.setContentType("text/html;charset=UTF-8");
-
-        // Cần khi dùng SiteMesh Filter với JSP trên Tomcat 11
+        // Forward trên Tomcat 11 có thể đóng response trước khi SiteMesh ghi layout.
         resolver.setAlwaysInclude(true);
 
         resolver.setOrder(0);

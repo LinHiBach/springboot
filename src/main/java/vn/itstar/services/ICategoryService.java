@@ -8,7 +8,7 @@ import vn.itstar.entity.Category;
 public interface ICategoryService {
 
     List<Category> findAll();
-
+    List<Category> search(String keyword);
     Category save(Category category);
     
     Optional<Category> findById(Integer id);

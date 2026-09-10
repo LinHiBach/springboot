@@ -1,17 +1,17 @@
 package vn.itstar.controllers;
 
 import jakarta.validation.Valid;
+import java.util.Optional;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import vn.itstar.entity.Category;
@@ -28,23 +28,28 @@ public class CategoryController {
         this.categoryService = categoryService;
     }
 
-    // Hiển thị danh sách
+    // 1. GET /admin/categories – danh sách + tìm kiếm theo keyword
     @GetMapping
-    public String list(Model model) {
-        model.addAttribute("categories", categoryService.findAll());
+    public String list(
+            @RequestParam(name = "keyword", required = false, defaultValue = "") String keyword,
+            Model model) {
+
+        String searchKeyword = (keyword != null) ? keyword.trim() : "";
+
+        model.addAttribute("categories", categoryService.search(searchKeyword));
+        model.addAttribute("keyword", searchKeyword);
 
         return "admin/categories/list";
     }
 
-    // Mở form thêm
+    // 2. GET /admin/categories/add – form thêm mới
     @GetMapping("/add")
     public String add(Model model) {
         model.addAttribute("category", new CategoryModel());
-
         return "admin/categories/add";
     }
 
-    // Nhận dữ liệu form và lưu
+    // 3. POST /admin/categories/save – lưu danh mục mới
     @PostMapping("/save")
     public String save(
             @Valid @ModelAttribute("category") CategoryModel categoryModel,
@@ -56,19 +61,13 @@ public class CategoryController {
             return "admin/categories/add";
         }
 
-        // Chuyển dữ liệu từ Model sang Entity
         Category category = new Category();
-
-        category.setCategoryname(
-                categoryModel.getCategoryname().trim()
-        );
-
+        category.setCategoryname(categoryModel.getCategoryname().trim());
         category.setImages(
                 categoryModel.getImages() == null
                         ? ""
                         : categoryModel.getImages().trim()
         );
-
         category.setStatus(categoryModel.getStatus());
 
         categoryService.save(category);
@@ -80,20 +79,23 @@ public class CategoryController {
 
         return "redirect:/admin/categories";
     }
-    
- // Mở form sửa
+
+    // 4. GET /admin/categories/edit/{id} – form sửa
     @GetMapping("/edit/{id}")
-    public String edit(@PathVariable("id") Integer id, Model model) {
+    public String edit(
+            @PathVariable("id") Integer id,
+            Model model,
+            RedirectAttributes redirectAttributes) {
 
-        Category category = categoryService.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Không tìm thấy danh mục"
-                ));
+        Optional<Category> opt = categoryService.findById(id);
+        if (opt.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy danh mục ID #" + id);
+            return "redirect:/admin/categories";
+        }
 
-        // Đưa dữ liệu hiện tại vào form
+        Category category = opt.get();
+
         CategoryModel categoryModel = new CategoryModel();
-
         categoryModel.setCategoryname(category.getCategoryname());
         categoryModel.setImages(category.getImages());
         categoryModel.setStatus(category.getStatus());
@@ -104,7 +106,7 @@ public class CategoryController {
         return "admin/categories/edit";
     }
 
-    // Nhận dữ liệu form sửa và cập nhật
+    // 5. POST /admin/categories/update/{id} – cập nhật
     @PostMapping("/update/{id}")
     public String update(
             @PathVariable("id") Integer id,
@@ -113,26 +115,24 @@ public class CategoryController {
             Model model,
             RedirectAttributes redirectAttributes) {
 
-        Category category = categoryService.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Không tìm thấy danh mục"
-                ));
+        Optional<Category> opt = categoryService.findById(id);
+        if (opt.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy danh mục ID #" + id);
+            return "redirect:/admin/categories";
+        }
 
         if (result.hasErrors()) {
             model.addAttribute("categoryId", id);
             return "admin/categories/edit";
         }
 
-        // Cập nhật trên đối tượng đã có ID
+        Category category = opt.get();
         category.setCategoryname(categoryModel.getCategoryname().trim());
-
         category.setImages(
                 categoryModel.getImages() == null
                         ? ""
                         : categoryModel.getImages().trim()
         );
-
         category.setStatus(categoryModel.getStatus());
 
         categoryService.save(category);
@@ -144,28 +144,33 @@ public class CategoryController {
 
         return "redirect:/admin/categories";
     }
-    
+
+    // 6. POST /admin/categories/delete/{id} – xóa
     @PostMapping("/delete/{id}")
     public String delete(
             @PathVariable("id") Integer id,
             RedirectAttributes redirectAttributes) {
 
-        // Kiểm tra danh mục còn tồn tại không
         if (categoryService.findById(id).isEmpty()) {
             redirectAttributes.addFlashAttribute(
-                    "message",
+                    "error",
                     "Danh mục không tồn tại hoặc đã được xóa!"
             );
-
             return "redirect:/admin/categories";
         }
 
-        categoryService.deleteById(id);
-
-        redirectAttributes.addFlashAttribute(
-                "message",
-                "Xóa danh mục thành công!"
-        );
+        try {
+            categoryService.deleteById(id);
+            redirectAttributes.addFlashAttribute(
+                    "message",
+                    "Xóa danh mục thành công!"
+            );
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute(
+                    "error",
+                    "Không thể xóa danh mục này do đang có dữ liệu liên quan!"
+            );
+        }
 
         return "redirect:/admin/categories";
     }

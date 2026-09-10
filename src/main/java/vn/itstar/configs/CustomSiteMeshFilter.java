@@ -9,12 +9,20 @@ public class CustomSiteMeshFilter extends ConfigurableSiteMeshFilter {
     protected void applyCustomConfiguration(SiteMeshFilterBuilder builder) {
 
         builder
-            .addDecoratorPath("/*", "web.jsp")
+            // SiteMesh 3.3 tự thêm tiền tố /WEB-INF/decorators/.
             .addDecoratorPath("/admin", "admin.jsp")
             .addDecoratorPath("/admin/*", "admin.jsp")
+            .addDecoratorPath("/admin/**", "admin.jsp")
+            .addDecoratorPath("/*", "web.jsp")
 
             .addExcludedPath("/login")
             .addExcludedPath("/login/*")
+            .addExcludedPath("/register")
+            .addExcludedPath("/register/*")
+            .addExcludedPath("/verify-otp")
+            .addExcludedPath("/verify-otp/*")
+            .addExcludedPath("/resend-otp")
+            .addExcludedPath("/resend-otp/*")
             .addExcludedPath("/alogin")
             .addExcludedPath("/alogin/*")
             .addExcludedPath("/api/*")

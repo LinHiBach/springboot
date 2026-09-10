@@ -36,4 +36,15 @@ public class CategoryService implements ICategoryService {
     public void deleteById(Integer id) {
         categoryRepository.deleteById(id);
     }
+    
+    @Override
+    public List<Category> search(String keyword) {
+
+        if (keyword == null || keyword.isBlank()) {
+            return categoryRepository.findAll();
+        }
+
+        return categoryRepository
+                .findByCategorynameContainingIgnoreCase(keyword.trim());
+    }
 }
